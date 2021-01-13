@@ -1,0 +1,25 @@
+{
+    "name": "8BitForest.Multiverse.MirrorNoble.RuntimeTests",
+    "rootNamespace": "Multiverse.MirrorNoble.Tests",
+    "references": [
+        "GUID:27619889b8ba8c24980f49ee34dbb44a",
+        "GUID:0acc523941302664db1f4e527237feb3",
+        "GUID:a1a460d36b8f541bebc8ee3cf15a82c8",
+        "GUID:521afff039b264ddb8f24c5dc56a3bc4",
+        "GUID:30817c1a0e6d646d99c048fc403f5979"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS",
+        "!MULTIVERSE_TEST_SERVER || MULTIVERSE_TEST_SERVER_MIRRORNOBLE"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

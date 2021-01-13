@@ -1,0 +1,14 @@
+{
+  "name": "com.eightbitforest.multiverse.mirror-noble",
+  "version": "1.0.0",
+  "displayName": "Multiverse Mirror/Noble Support",
+  "author": {
+    "name": "8-Bit Forest",
+    "email": "support@8bitforest.com",
+    "url": "8bitforest.com"
+  },
+  "type": "library",
+  "dependencies": {
+    "com.eightbitforest.multiverse": "1.0.0"
+  }
+}
