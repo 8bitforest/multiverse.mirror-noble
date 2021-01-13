@@ -59,7 +59,7 @@ namespace Multiverse.MirrorNoble
             var task = new TaskCompletionSource();
             _matchmaker.CreateMatch(maxPlayers, new Dictionary<string, MatchData>
             {
-                {"Name", new MatchData(name)},
+                {"Name", new MatchData(matchName)},
                 {"MaxPlayers", new MatchData(maxPlayers)}
             }, (success, _) =>
             {
