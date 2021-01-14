@@ -1,4 +1,4 @@
-using kcp2k;
+using Mirror;
 using Multiverse.Tests;
 using NUnit.Framework;
 using UnityEngine;
@@ -7,10 +7,10 @@ namespace Multiverse.MirrorNoble.Tests
 {
     [SetUpFixture]
     public class MirrorNobleTestSetUp : MultiverseTestSetUp<MirrorNobleLibraryAdder> { }
-    
+
     [TestFixture]
     public class MirrorNobleMatchmakerTests : MatchmakerTests { }
-    
+
     [TestFixture]
     public class MirrorNobleMatchmakerClientTests : MatchmakerClientTests { }
 
@@ -18,7 +18,11 @@ namespace Multiverse.MirrorNoble.Tests
     {
         public void AddLibrary(GameObject gameObject)
         {
-            gameObject.AddComponent<KcpTransport>();
+            gameObject.AddComponent<Ignorance>().Channels = new[]
+            {
+                IgnoranceChannelTypes.Reliable,
+                IgnoranceChannelTypes.Unreliable
+            };
             gameObject.AddComponent<MirrorNobleMvLibrary>();
         }
     }

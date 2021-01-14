@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MatchUp;
+using Mirror;
+using NobleConnect.Mirror;
 using UnityEngine;
 
 namespace Multiverse.MirrorNoble
@@ -11,13 +13,24 @@ namespace Multiverse.MirrorNoble
     [RequireComponent(typeof(Matchmaker))]
     public class MirrorNobleMvLibraryMatchmaker : MonoBehaviour, IMvLibraryMatchmaker
     {
+        public bool Connected => _matchmaker.IsReady;
+        
+        private NobleNetworkManager _networkManager;
         private Matchmaker _matchmaker;
 
-        public bool Connected => _matchmaker.IsReady;
+        private TaskCompletionSource _joinMatchTask;
+        private TaskCompletionSource _createMatchTask;
+        private string _matchName;
+        private int _maxPlayers;
 
         private void Awake()
         {
             _matchmaker = GetComponent<Matchmaker>();
+        }
+
+        private void Start()
+        {
+            _networkManager = (NobleNetworkManager) NetworkManager.singleton;
         }
 
         public async Task Connect()
@@ -56,32 +69,51 @@ namespace Multiverse.MirrorNoble
 
         public async Task CreateMatch(string matchName, int maxPlayers)
         {
-            var task = new TaskCompletionSource();
-            _matchmaker.CreateMatch(maxPlayers, new Dictionary<string, MatchData>
+            _createMatchTask = new TaskCompletionSource();
+            _matchName = matchName;
+            _maxPlayers = maxPlayers;
+            _networkManager.StartServer();
+            await _createMatchTask.Task;
+        }
+
+        internal void OnServerPrepared(string hostAddress, ushort hostPort)
+        {
+            _matchmaker.CreateMatch(_maxPlayers, new Dictionary<string, MatchData>
             {
-                {"Name", new MatchData(matchName)},
-                {"MaxPlayers", new MatchData(maxPlayers)}
+                {"Name", _matchName},
+                {"MaxPlayers", _maxPlayers},
+                {"HostAddress", hostAddress},
+                {"HostPort", (int) hostPort}
             }, (success, _) =>
             {
                 if (success)
-                    task.SetResult();
+                    _createMatchTask.SetResult();
                 else
-                    task.SetException(new MvException());
+                    _createMatchTask.SetException(new MvException());
             });
-            await task.Task;
         }
 
         public async Task JoinMatch(IMvMatch match)
         {
-            var task = new TaskCompletionSource();
-            _matchmaker.JoinMatch(new Match(Convert.ToInt64(match.Id)), (success, _) =>
+            _joinMatchTask = new TaskCompletionSource();
+            _matchmaker.JoinMatch(new Match(Convert.ToInt64(match.Id)), (success, match) =>
             {
                 if (success)
-                    task.SetResult();
+                {
+                    _networkManager.networkAddress = match.matchData["HostAddress"];
+                    _networkManager.networkPort = match.matchData["HostPort"];
+                    _networkManager.StartClient();
+                }
                 else
-                    task.SetException(new MvException());
+                    _joinMatchTask.SetException(new MvException());
             });
-            await task.Task;
+            await _joinMatchTask.Task;
+        }
+
+        internal void OnClientConnect()
+        {
+            _joinMatchTask.SetResult();
+            _joinMatchTask = null;
         }
 
         public async Task<IEnumerable<IMvMatch>> GetMatchList()
