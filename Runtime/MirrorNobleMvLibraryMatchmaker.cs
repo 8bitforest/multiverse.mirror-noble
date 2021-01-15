@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MatchUp;
 using Mirror;
 using NobleConnect.Mirror;
+using Reaction;
 using UnityEngine;
 
 namespace Multiverse.MirrorNoble
@@ -14,7 +15,8 @@ namespace Multiverse.MirrorNoble
     public class MirrorNobleMvLibraryMatchmaker : MonoBehaviour, IMvLibraryMatchmaker
     {
         public bool Connected => _matchmaker.IsReady;
-        
+        public RxnEvent OnDisconnected { get; } = new RxnEvent();
+
         private NobleNetworkManager _networkManager;
         private Matchmaker _matchmaker;
 
@@ -26,6 +28,7 @@ namespace Multiverse.MirrorNoble
         private void Awake()
         {
             _matchmaker = GetComponent<Matchmaker>();
+            _matchmaker.onLostConnectionToMatchmakingServer = e => OnDisconnected.AsOwner.Invoke();
         }
 
         private void Start()
@@ -58,6 +61,7 @@ namespace Multiverse.MirrorNoble
             var disconnectTask = new TaskCompletionSource();
             StartCoroutine(DisconnectCoroutine(disconnectTask));
             await disconnectTask.Task;
+            OnDisconnected.AsOwner.Invoke();
         }
 
         private IEnumerator DisconnectCoroutine(TaskCompletionSource disconnectTask)
