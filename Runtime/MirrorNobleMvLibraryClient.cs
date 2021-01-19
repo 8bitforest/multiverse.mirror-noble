@@ -10,8 +10,8 @@ namespace Multiverse.MirrorNoble
 {
     public class MirrorNobleMvLibraryClient : MonoBehaviour, IMvLibraryClient
     {
-        public IMvConnection LocalConnection { get; private set; }
-        public RxnSet<IMvConnection> Connections { get; } = new RxnSet<IMvConnection>();
+        public MvConnection LocalConnection { get; private set; }
+        public RxnSet<MvConnection> Connections { get; } = new RxnSet<MvConnection>();
 
         public RxnEvent OnDisconnected { get; } = new RxnEvent();
 
@@ -83,15 +83,9 @@ namespace Multiverse.MirrorNoble
             Connections.AsOwner.Remove(Connections.First(c => c.Id == msg.Id));
         }
 
-        private static IMvConnection NewConnection(int id, bool isLocal, bool isHost)
+        private static MvConnection NewConnection(int id, bool isLocal, bool isHost)
         {
-            return new DefaultMvConnection
-            {
-                Name = null,
-                Id = id,
-                IsHost = isHost,
-                IsLocal = isLocal
-            };
+            return new MvConnection(null, id, isHost, isLocal);
         }
     }
 }

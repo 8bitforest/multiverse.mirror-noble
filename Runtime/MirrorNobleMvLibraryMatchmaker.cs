@@ -77,7 +77,7 @@ namespace Multiverse.MirrorNoble
             _networkManager.StartHost();
             await _createMatchTask.Task;
         }
-        
+
         internal void OnServerPrepared(string hostAddress, ushort hostPort)
         {
             CreateMatch(_maxPlayers, new Dictionary<string, MatchData>
@@ -95,7 +95,7 @@ namespace Multiverse.MirrorNoble
             });
         }
 
-        public async Task JoinMatch(IMvMatch match)
+        public async Task JoinMatch(MvMatch match)
         {
             _joinMatchTask = new TaskCompletionSource();
             JoinMatch(new Match(Convert.ToInt64(match.Id)), (success, match) =>
@@ -118,18 +118,14 @@ namespace Multiverse.MirrorNoble
             _joinMatchTask = null;
         }
 
-        public async Task<IEnumerable<IMvMatch>> GetMatchList()
+        public async Task<IEnumerable<MvMatch>> GetMatchList()
         {
-            var task = new TaskCompletionSource<IEnumerable<IMvMatch>>();
+            var task = new TaskCompletionSource<IEnumerable<MvMatch>>();
             GetMatchList((success, matches) =>
             {
                 if (success)
-                    task.SetResult(matches.Select(m => new DefaultMvMatch
-                    {
-                        Id = m.id.ToString(),
-                        Name = m.matchData["Name"].stringValue,
-                        MaxPlayers = m.matchData["MaxPlayers"].intValue
-                    }));
+                    task.SetResult(matches.Select(m => new MvMatch(
+                        m.id.ToString(), m.matchData["Name"].stringValue, m.matchData["MaxPlayers"].intValue)));
                 else
                     task.SetException(new MvException());
             });
