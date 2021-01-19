@@ -12,13 +12,12 @@ using UnityEngine;
 namespace Multiverse.MirrorNoble
 {
     [RequireComponent(typeof(Matchmaker))]
-    public class MirrorNobleMvLibraryMatchmaker : MonoBehaviour, IMvLibraryMatchmaker
+    public class MirrorNobleMvLibraryMatchmaker : Matchmaker, IMvLibraryMatchmaker
     {
-        public bool Connected => _matchmaker.IsReady;
+        public bool Connected => IsReady;
         public RxnEvent OnDisconnected { get; } = new RxnEvent();
 
         private NobleNetworkManager _networkManager;
-        private Matchmaker _matchmaker;
 
         private TaskCompletionSource _joinMatchTask;
         private TaskCompletionSource _createMatchTask;
@@ -27,8 +26,7 @@ namespace Multiverse.MirrorNoble
 
         private void Awake()
         {
-            _matchmaker = GetComponent<Matchmaker>();
-            _matchmaker.onLostConnectionToMatchmakingServer = e => OnDisconnected.AsOwner.Invoke();
+            onLostConnectionToMatchmakingServer = e => OnDisconnected.AsOwner.Invoke();
         }
 
         private void Start()
@@ -38,7 +36,7 @@ namespace Multiverse.MirrorNoble
 
         public async Task Connect()
         {
-            if (_matchmaker.IsReady)
+            if (IsReady)
                 return;
 
             var connectTask = new TaskCompletionSource();
@@ -48,14 +46,14 @@ namespace Multiverse.MirrorNoble
 
         private IEnumerator ConnectCoroutine(TaskCompletionSource connectTask)
         {
-            yield return _matchmaker.ConnectToMatchmaker();
-            yield return new WaitUntilTimeout(() => _matchmaker.IsReady, 5);
+            yield return ConnectToMatchmaker();
+            yield return new WaitUntilTimeout(() => IsReady, 5);
             connectTask.SetResult();
         }
 
-        public async Task Disconnect()
+        public new async Task Disconnect()
         {
-            if (!_matchmaker.IsReady)
+            if (!IsReady)
                 return;
 
             var disconnectTask = new TaskCompletionSource();
@@ -66,8 +64,8 @@ namespace Multiverse.MirrorNoble
 
         private IEnumerator DisconnectCoroutine(TaskCompletionSource disconnectTask)
         {
-            _matchmaker.Disconnect();
-            yield return new WaitUntilTimeout(() => !_matchmaker.IsReady, 5);
+            base.Disconnect();
+            yield return new WaitUntilTimeout(() => !IsReady, 5);
             disconnectTask.SetResult();
         }
 
@@ -76,13 +74,13 @@ namespace Multiverse.MirrorNoble
             _createMatchTask = new TaskCompletionSource();
             _matchName = matchName;
             _maxPlayers = maxPlayers;
-            _networkManager.StartServer();
+            _networkManager.StartHost();
             await _createMatchTask.Task;
         }
-
+        
         internal void OnServerPrepared(string hostAddress, ushort hostPort)
         {
-            _matchmaker.CreateMatch(_maxPlayers, new Dictionary<string, MatchData>
+            CreateMatch(_maxPlayers, new Dictionary<string, MatchData>
             {
                 {"Name", _matchName},
                 {"MaxPlayers", _maxPlayers},
@@ -100,7 +98,7 @@ namespace Multiverse.MirrorNoble
         public async Task JoinMatch(IMvMatch match)
         {
             _joinMatchTask = new TaskCompletionSource();
-            _matchmaker.JoinMatch(new Match(Convert.ToInt64(match.Id)), (success, match) =>
+            JoinMatch(new Match(Convert.ToInt64(match.Id)), (success, match) =>
             {
                 if (success)
                 {
@@ -116,14 +114,14 @@ namespace Multiverse.MirrorNoble
 
         internal void OnClientConnect()
         {
-            _joinMatchTask.SetResult();
+            _joinMatchTask?.SetResult();
             _joinMatchTask = null;
         }
 
         public async Task<IEnumerable<IMvMatch>> GetMatchList()
         {
             var task = new TaskCompletionSource<IEnumerable<IMvMatch>>();
-            _matchmaker.GetMatchList((success, matches) =>
+            GetMatchList((success, matches) =>
             {
                 if (success)
                     task.SetResult(matches.Select(m => new DefaultMvMatch

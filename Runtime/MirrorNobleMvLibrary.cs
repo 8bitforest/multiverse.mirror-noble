@@ -4,15 +4,19 @@ using UnityEngine;
 
 namespace Multiverse.MirrorNoble
 {
-    [RequireComponent(typeof(Transport), typeof(MirrorNobleMvLibraryMatchmaker))] public class MirrorNobleMvLibrary : NobleNetworkManager, IMvLibrary
+    [RequireComponent(typeof(Transport), typeof(MirrorNobleMvLibraryMatchmaker))]
+    public class MirrorNobleMvLibrary : NobleNetworkManager, IMvLibrary
     {
         private MirrorNobleMvLibraryMatchmaker _matchmaker;
         private MirrorNobleMvLibraryServer _server;
         private MirrorNobleMvLibraryClient _client;
-        
+
         public override void Awake()
         {
             transport = GetComponent<Transport>();
+            autoCreatePlayer = false;
+            disconnectInactiveConnections = true;
+            NetworkServer.disconnectInactiveConnections = true;
             base.Awake();
         }
 
@@ -37,43 +41,49 @@ namespace Multiverse.MirrorNoble
             _client = null;
         }
 
+        public void SetTimeout(float seconds)
+        {
+            disconnectInactiveTimeout = seconds;
+            NetworkServer.disconnectInactiveTimeout = seconds;
+        }
+
         public override void OnServerPrepared(string hostAddress, ushort hostPort)
         {
-            _matchmaker.OnServerPrepared(hostAddress, hostPort);
+            // Server: Server started
             base.OnServerPrepared(hostAddress, hostPort);
+            _matchmaker.OnServerPrepared(hostAddress, hostPort);
         }
 
         public override void OnClientConnect(NetworkConnection conn)
         {
             // Client: Connected to server
-            _matchmaker.OnClientConnect();
             base.OnClientConnect(conn);
+            _matchmaker.OnClientConnect();
         }
 
         public override void OnClientDisconnect(NetworkConnection conn)
         {
             // Client: Disconnected from server
-            _client.OnClientDisconnect();
             base.OnClientDisconnect(conn);
+            _client.OnClientDisconnect();
         }
 
         public override void OnServerConnect(NetworkConnection conn)
         {
             // Server: Client connected
             base.OnServerConnect(conn);
+            if (_server)
+                _server.OnServerConnect(conn);
+            if (_client)
+                _client.OnServerConnect(conn);
         }
 
         public override void OnServerDisconnect(NetworkConnection conn)
         {
             // Server: Client disconnected
             base.OnServerDisconnect(conn);
-        }
-
-        public override void OnStopServer()
-        {
-            // Server: Server stopped
-            _server.OnStopServer();
-            base.OnStopServer();
+            _server.OnServerDisconnect(conn);
+            _client.OnServerDisconnect(conn);
         }
     }
 }

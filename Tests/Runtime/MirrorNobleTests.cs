@@ -6,13 +6,22 @@ using UnityEngine;
 namespace Multiverse.MirrorNoble.Tests
 {
     [SetUpFixture]
-    public class MirrorNobleTestSetUp : MultiverseTestSetUp<MirrorNobleLibraryAdder> { }
+    public class LibraryTestSetUp : MultiverseTestSetUp<MirrorNobleLibraryAdder> { }
 
     [TestFixture]
-    public class MirrorNobleMatchmakerTests : MatchmakerTests { }
+    public class LibraryMatchmakerTests : MatchmakerTests { }
 
     [TestFixture]
-    public class MirrorNobleMatchmakerClientTests : MatchmakerClientTests { }
+    public class LibraryClientNotJoinedTests : ClientNotJoinedTests { }
+    
+    [TestFixture]
+    public class LibraryClientJoinedTests : ClientJoinedTests { }
+
+    [TestFixture]
+    public class LibraryServerNotCreatedTests : ServerNotCreatedTests { }
+    
+    [TestFixture]
+    public class LibraryServerCreatedTests : ServerCreatedTests { }
 
     public class MirrorNobleLibraryAdder : IMvTestLibraryAdder
     {
