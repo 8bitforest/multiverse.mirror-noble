@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using MatchUp;
 using Mirror;
+using Multiverse.LibraryInterfaces;
+using Multiverse.Utils;
 using NobleConnect.Mirror;
 using Reaction;
 using UnityEngine;
@@ -47,7 +49,7 @@ namespace Multiverse.MirrorNoble
         private IEnumerator ConnectCoroutine(TaskCompletionSource connectTask)
         {
             yield return ConnectToMatchmaker();
-            yield return new WaitUntilTimeout(() => IsReady, 5);
+            yield return new WaitUntilTimeout(() => IsReady);
             connectTask.SetResult();
         }
 
@@ -65,7 +67,7 @@ namespace Multiverse.MirrorNoble
         private IEnumerator DisconnectCoroutine(TaskCompletionSource disconnectTask)
         {
             base.Disconnect();
-            yield return new WaitUntilTimeout(() => !IsReady, 5);
+            yield return new WaitUntilTimeout(() => !IsReady);
             disconnectTask.SetResult();
         }
 
@@ -125,7 +127,7 @@ namespace Multiverse.MirrorNoble
             {
                 if (success)
                     task.SetResult(matches.Select(m => new MvMatch(
-                        m.id.ToString(), m.matchData["Name"].stringValue, m.matchData["MaxPlayers"].intValue)));
+                        m.matchData["Name"].stringValue, m.id.ToString(), m.matchData["MaxPlayers"].intValue)));
                 else
                     task.SetException(new MvException());
             });

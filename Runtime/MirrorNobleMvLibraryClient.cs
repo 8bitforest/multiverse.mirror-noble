@@ -1,7 +1,10 @@
+using System;
 using System.Collections;
-using System.Linq;
 using System.Threading.Tasks;
 using Mirror;
+using Multiverse.LibraryInterfaces;
+using Multiverse.Messaging;
+using Multiverse.Utils;
 using NobleConnect.Mirror;
 using Reaction;
 using UnityEngine;
@@ -11,7 +14,7 @@ namespace Multiverse.MirrorNoble
     public class MirrorNobleMvLibraryClient : MonoBehaviour, IMvLibraryClient
     {
         public MvConnection LocalConnection { get; private set; }
-        public RxnSet<MvConnection> Connections { get; } = new RxnSet<MvConnection>();
+        public RxnDictionary<int, MvConnection> Connections { get; } = new RxnDictionary<int, MvConnection>();
 
         public RxnEvent OnDisconnected { get; } = new RxnEvent();
 
@@ -25,7 +28,7 @@ namespace Multiverse.MirrorNoble
                 ? NewConnection(NobleServer.localConnection.connectionId, true, true)
                 : NewConnection(-1, true, false);
 
-            Connections.AsOwner.Add(LocalConnection);
+            Connections.AsOwner[LocalConnection.Id] = LocalConnection;
 
             _networkManager.client?.RegisterHandler<ClientConnectedMessage>(OnClientConnectedMessage);
             _networkManager.client?.RegisterHandler<ClientDisconnectedMessage>(OnClientDisconnectedMessage);
@@ -37,6 +40,18 @@ namespace Multiverse.MirrorNoble
             StartCoroutine(DisconnectCoroutine(disconnectTask));
             await disconnectTask.Task;
             OnDisconnected.AsOwner.Invoke();
+        }
+
+        public void SetMessageReceiver(ByteMessageReceiver receiver)
+        {
+            NetworkClient.RegisterHandler<MvNetworkMessage>((connection, message) =>
+                receiver(Connections[connection.connectionId], message.Data));
+        }
+
+        public void SendMessageToServer(ArraySegment<byte> message, bool reliable)
+        {
+            NetworkClient.Send(new MvNetworkMessage(message),
+                reliable ? Channels.DefaultReliable : Channels.DefaultUnreliable);
         }
 
         private IEnumerator DisconnectCoroutine(TaskCompletionSource disconnectTask)
@@ -52,7 +67,7 @@ namespace Multiverse.MirrorNoble
                 _networkManager.client.connection.InvokeHandler(new DisconnectMessage(), -1);
             }
 
-            yield return new WaitUntilTimeout(() => !NetworkClient.active && !NetworkClient.isConnected, 5);
+            yield return new WaitUntilTimeout(() => !NetworkClient.active && !NetworkClient.isConnected);
             disconnectTask.SetResult();
         }
 
@@ -64,23 +79,26 @@ namespace Multiverse.MirrorNoble
 
         internal void OnServerConnect(NetworkConnection networkConnection)
         {
-            if (networkConnection.connectionId != LocalConnection.Id)
-                Connections.AsOwner.Add(NewConnection(networkConnection.connectionId, false, false));
+            if (networkConnection.connectionId == LocalConnection.Id)
+                return;
+
+            Connections.AsOwner[networkConnection.connectionId] =
+                NewConnection(networkConnection.connectionId, false, false);
         }
 
         internal void OnServerDisconnect(NetworkConnection networkConnection)
         {
-            Connections.AsOwner.Remove(Connections.First(c => c.Id == networkConnection.connectionId));
+            Connections.AsOwner.Remove(networkConnection.connectionId);
         }
 
         private void OnClientConnectedMessage(ClientConnectedMessage msg)
         {
-            Connections.AsOwner.Add(NewConnection(msg.Id, false, msg.IsHost));
+            Connections.AsOwner[msg.Id] = NewConnection(msg.Id, false, msg.IsHost);
         }
 
         private void OnClientDisconnectedMessage(ClientDisconnectedMessage msg)
         {
-            Connections.AsOwner.Remove(Connections.First(c => c.Id == msg.Id));
+            Connections.AsOwner.Remove(msg.Id);
         }
 
         private static MvConnection NewConnection(int id, bool isLocal, bool isHost)

@@ -1,5 +1,6 @@
 using Mirror;
 using Multiverse.Tests;
+using Multiverse.Tests.Utils;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -22,6 +23,12 @@ namespace Multiverse.MirrorNoble.Tests
     
     [TestFixture]
     public class LibraryServerCreatedTests : ServerCreatedTests { }
+    
+    [TestFixture]
+    public class LibraryClientMessageTests : ClientMessageTests { }
+    
+    [TestFixture]
+    public class LibraryServerMessageTests : ServerMessageTests { }
 
     public class MirrorNobleLibraryAdder : IMvTestLibraryAdder
     {

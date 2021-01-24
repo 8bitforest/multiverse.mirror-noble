@@ -1,3 +1,4 @@
+using System;
 using Mirror;
 
 namespace Multiverse.MirrorNoble
@@ -11,5 +12,15 @@ namespace Multiverse.MirrorNoble
     public struct ClientDisconnectedMessage : NetworkMessage
     {
         public int Id;
+    }
+
+    public struct MvNetworkMessage : NetworkMessage
+    {
+        public ArraySegment<byte> Data;
+
+        public MvNetworkMessage(ArraySegment<byte> data)
+        {
+            Data = data;
+        }
     }
 }
