@@ -1,5 +1,5 @@
 {
-    "name": "8BitForest.Multiverse.MirrorNoble.Runtime",
+    "name": "8BitForest.Multiverse.MirrorNoble",
     "rootNamespace": "Multiverse.MirrorNoble",
     "references": [
         "GUID:1f77266d5a71843aa87d69a8a280bce5",
