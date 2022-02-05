@@ -9,6 +9,7 @@ namespace Multiverse.MirrorNoble
     public class MirrorNobleMvLibrary : NobleNetworkManager, IMvLibrary
     {
         private MirrorNobleMvLibraryMatchmaker _matchmaker;
+        private MirrorNobleMvLibraryHost _host;
         private MirrorNobleMvLibraryServer _server;
         private MirrorNobleMvLibraryClient _client;
 
@@ -16,9 +17,15 @@ namespace Multiverse.MirrorNoble
         {
             transport = GetComponent<Transport>();
             autoCreatePlayer = false;
-            disconnectInactiveConnections = true;
-            NetworkServer.disconnectInactiveConnections = true;
+            // TODO
+            // disconnectInactiveConnections = true;
+            // NetworkServer.disconnectInactiveConnections = true;
             base.Awake();
+        }
+        
+        public IMvLibraryHost GetHost()
+        {
+            return _host = gameObject.AddComponent<MirrorNobleMvLibraryHost>();
         }
 
         public IMvLibraryServer GetServer()
@@ -38,14 +45,19 @@ namespace Multiverse.MirrorNoble
 
         public void CleanupAfterDisconnect()
         {
+            Destroy(_host);
+            Destroy(_server);
+            Destroy(_client);
+            _host = null;
             _server = null;
             _client = null;
         }
 
         public void SetTimeout(float seconds)
         {
-            disconnectInactiveTimeout = seconds;
-            NetworkServer.disconnectInactiveTimeout = seconds;
+            // TODO
+            // disconnectInactiveTimeout = seconds;
+            // NetworkServer.disconnectInactiveTimeout = seconds;
         }
 
         public override void OnServerPrepared(string hostAddress, ushort hostPort)
@@ -73,10 +85,7 @@ namespace Multiverse.MirrorNoble
         {
             // Server: Client connected
             base.OnServerConnect(conn);
-            if (_server)
-                _server.OnServerConnect(conn);
-            if (_client)
-                _client.OnServerConnect(conn);
+            _server.OnServerConnect(conn);
         }
 
         public override void OnServerDisconnect(NetworkConnection conn)
@@ -84,7 +93,6 @@ namespace Multiverse.MirrorNoble
             // Server: Client disconnected
             base.OnServerDisconnect(conn);
             _server.OnServerDisconnect(conn);
-            _client.OnServerDisconnect(conn);
         }
     }
 }

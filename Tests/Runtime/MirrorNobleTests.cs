@@ -1,4 +1,4 @@
-using Mirror;
+using IgnoranceTransport;
 using Multiverse.Tests;
 using Multiverse.Tests.Utils;
 using NUnit.Framework;
@@ -14,21 +14,27 @@ namespace Multiverse.MirrorNoble.Tests
 
     [TestFixture]
     public class LibraryClientNotJoinedTests : ClientNotJoinedTests { }
-    
+
     [TestFixture]
     public class LibraryClientJoinedTests : ClientJoinedTests { }
 
     [TestFixture]
-    public class LibraryServerNotCreatedTests : ServerNotCreatedTests { }
-    
+    public class LibraryHostNotCreatedTests : HostNotCreatedTests { }
+
     [TestFixture]
-    public class LibraryServerCreatedTests : ServerCreatedTests { }
-    
+    public class LibraryHostCreatedTests : HostCreatedTests { }
+
     [TestFixture]
     public class LibraryClientMessageTests : ClientMessageTests { }
-    
+
     [TestFixture]
-    public class LibraryServerMessageTests : ServerMessageTests { }
+    public class LibraryHostMessageTests : HostMessageTests { }
+
+    [TestFixture]
+    public class LibraryClientUniverseTests : ClientUniverseTests { }
+
+    [TestFixture]
+    public class LibraryHostUniverseTests : HostUniverseTests { }
 
     public class MirrorNobleLibraryAdder : IMvTestLibraryAdder
     {

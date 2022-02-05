@@ -1,14 +1,11 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using MatchUp;
 using Mirror;
 using Multiverse.LibraryInterfaces;
 using Multiverse.Utils;
 using NobleConnect.Mirror;
-using Reaction;
 using UnityEngine;
 
 namespace Multiverse.MirrorNoble
@@ -16,19 +13,24 @@ namespace Multiverse.MirrorNoble
     [RequireComponent(typeof(Matchmaker))]
     public class MirrorNobleMvLibraryMatchmaker : Matchmaker, IMvLibraryMatchmaker
     {
-        public bool Connected => IsReady;
-        public RxnEvent OnDisconnected { get; } = new RxnEvent();
+        public Connected Connected { get; set; }
+        public Disconnected Disconnected { get; set; }
+        public Connected ConnectedToMatch { get; set; }
+
+        public ErrorHandler HostMatchError { get; set; }
+        public ErrorHandler JoinMatchError { get; set; }
+
+        public MatchesUpdated MatchesUpdated { get; set; }
 
         private NobleNetworkManager _networkManager;
 
-        private TaskCompletionSource _joinMatchTask;
-        private TaskCompletionSource _createMatchTask;
-        private string _matchName;
-        private int _maxPlayers;
+        private byte[] _matchData;
+
+        private Dictionary<int, Match> _matches = new Dictionary<int, Match>();
 
         private void Awake()
         {
-            onLostConnectionToMatchmakingServer = e => OnDisconnected.AsOwner.Invoke();
+            onLostConnectionToMatchmakingServer = e => Disconnected();
         }
 
         private void Start()
@@ -36,71 +38,68 @@ namespace Multiverse.MirrorNoble
             _networkManager = (NobleNetworkManager) NetworkManager.singleton;
         }
 
-        public async Task Connect()
+        public void Connect()
         {
             if (IsReady)
+            {
+                Connected();
                 return;
+            }
 
-            var connectTask = new TaskCompletionSource();
-            StartCoroutine(ConnectCoroutine(connectTask));
-            await connectTask.Task;
+            StartCoroutine(ConnectCoroutine());
         }
 
-        private IEnumerator ConnectCoroutine(TaskCompletionSource connectTask)
+        private IEnumerator ConnectCoroutine()
         {
             yield return ConnectToMatchmaker();
             yield return new WaitUntilTimeout(() => IsReady);
-            connectTask.SetResult();
+            Connected();
         }
 
-        public new async Task Disconnect()
+        void IMvLibraryMatchmaker.Disconnect()
         {
             if (!IsReady)
+            {
+                Disconnected();
                 return;
+            }
 
-            var disconnectTask = new TaskCompletionSource();
-            StartCoroutine(DisconnectCoroutine(disconnectTask));
-            await disconnectTask.Task;
-            OnDisconnected.AsOwner.Invoke();
+            StartCoroutine(DisconnectCoroutine());
         }
 
-        private IEnumerator DisconnectCoroutine(TaskCompletionSource disconnectTask)
+        private IEnumerator DisconnectCoroutine()
         {
             base.Disconnect();
             yield return new WaitUntilTimeout(() => !IsReady);
-            disconnectTask.SetResult();
+            Disconnected();
         }
 
-        public async Task CreateMatch(string matchName, int maxPlayers)
+        public void HostMatch(byte[] data)
         {
-            _createMatchTask = new TaskCompletionSource();
-            _matchName = matchName;
-            _maxPlayers = maxPlayers;
+            _matchData = data;
             _networkManager.StartHost();
-            await _createMatchTask.Task;
         }
 
         internal void OnServerPrepared(string hostAddress, ushort hostPort)
         {
-            CreateMatch(_maxPlayers, new Dictionary<string, MatchData>
+            var matchData = new Dictionary<string, MatchData>
             {
-                {"Name", _matchName},
-                {"MaxPlayers", _maxPlayers},
                 {"HostAddress", hostAddress},
-                {"HostPort", (int) hostPort}
-            }, (success, _) =>
+                {"HostPort", (int) hostPort},
+                {"MultiverseData", Base64Encode(_matchData)}
+            };
+            CreateMatch(int.MaxValue, matchData, (success, _) =>
             {
                 if (success)
-                    _createMatchTask.SetResult();
+                    ConnectedToMatch();
                 else
-                    _createMatchTask.SetException(new MvException());
+                    HostMatchError("");
             });
         }
 
-        public async Task JoinMatch(MvMatch match)
+        public void JoinMatch(int libId)
         {
-            _joinMatchTask = new TaskCompletionSource();
-            JoinMatch(new Match(Convert.ToInt64(match.Id)), (success, match) =>
+            JoinMatch(_matches[libId], (success, match) =>
             {
                 if (success)
                 {
@@ -109,29 +108,42 @@ namespace Multiverse.MirrorNoble
                     _networkManager.StartClient();
                 }
                 else
-                    _joinMatchTask.SetException(new MvException());
+                    JoinMatchError("");
             });
-            await _joinMatchTask.Task;
         }
 
         internal void OnClientConnect()
         {
-            _joinMatchTask?.SetResult();
-            _joinMatchTask = null;
+            if (NetworkManager.singleton.mode != NetworkManagerMode.Host)
+                ConnectedToMatch();
         }
 
-        public async Task<IEnumerable<MvMatch>> GetMatchList()
+        public void UpdateMatchList()
         {
-            var task = new TaskCompletionSource<IEnumerable<MvMatch>>();
             GetMatchList((success, matches) =>
             {
                 if (success)
-                    task.SetResult(matches.Select(m => new MvMatch(
-                        m.matchData["Name"].stringValue, m.id.ToString(), m.matchData["MaxPlayers"].intValue)));
+                    UpdateMatchList(matches);
                 else
-                    task.SetException(new MvException());
+                    Debug.LogWarning("Could not update match list!");
             });
-            return await task.Task;
+        }
+
+        private void UpdateMatchList(Match[] matches)
+        {
+            _matches = matches.ToDictionary(r => r.GetHashCode());
+            MatchesUpdated(matches.Select(m
+                => (m.GetHashCode(), Base64Decode(m.matchData["MultiverseData"].stringValue))));
+        }
+
+        private string Base64Encode(byte[] bytes)
+        {
+            return System.Convert.ToBase64String(bytes);
+        }
+
+        private byte[] Base64Decode(string str)
+        {
+            return System.Convert.FromBase64String(str);
         }
     }
 }
